@@ -70,7 +70,27 @@ const originalData = {
   refills: 3,
   gemCostArray: [0, 100, 300, 700, 1500, 2700, 4300],
   farmList: [],
+  petUpgrades: [
+              { value: 0, desc: 'zero'},
+              { value: 10, desc: 'one'},
+              { value: 30, desc: 'two'},
+              { value: 80, desc: 'three'},
+              { value: 180, desc: 'four'},
+              { value: 330, desc: 'five'},
+    ],
 };
+//originalData
+
+function getPetInputClassPrefix(petFrags) {
+    const pu = originalData.petUpgrades;
+    let classPrefix = ''
+    for(let i = 0, last = 0; i < pu.length; ++i) {
+        classPrefix = pu[i].desc;
+        if (pu[i].value >= petFrags)
+            return classPrefix;
+    }
+    return classPrefix;
+}
 
 // Load saved data if it exists
 const savedData = JSON.parse(localStorage.getItem('data')) || false;
@@ -149,6 +169,9 @@ const vm = new Vue({
     orderedPetList() {
       return _.orderBy(data.petList, 'index');
     },
+    petUpgradesInverted(){
+      return _.reverse(data.petUpgrades);
+   }
   },
   methods: {
     getPet(petName) {
@@ -218,5 +241,20 @@ const vm = new Vue({
       }
       data.farmList = _.filter(data.farmList, obj => obj.farmableFrags > 0);
     },
+                   // we can't put the state in "data" because we don't wan't to duplicate it in local storage => work directly with html, don't use Vue
+    restoreState() {
+                   const rawData = document.getElementById('rawState').value;
+                   localStorage.setItem('data', rawData);
+                   _.assign(data, JSON.parse(rawData));
+                   },
+                   
+        dumpState() {
+                   const state = JSON.stringify(data);
+                   document.getElementById('rawState').value = state;
+                   },
+                   
+                   clearState() {
+                   document.getElementById('rawState').value = '';
+                   }
   },
 });
