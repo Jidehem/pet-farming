@@ -312,10 +312,22 @@ const vm = new Vue({
                }
                nextPetTodoIndex++;
            }
-           // all daily tickets have been used
-           // skip pets done
-           nextPetNotDoneIndex = this.getNextPetTodoIndex(nextPetNotDoneIndex, remainingFragsByPetName);
-           this.planning.push(dayPlanning);
+           // all daily tickets have been used or end of pet list reached
+           if (nbRemainingTickets === nbDailyTickets) {
+                   // assert nextPetTodoIndex === -1
+                   // assert dayPlanning.nbFragsUsed
+                   // assert farmableFrags = 0
+                   // assert dayPlanning.nbFragsUsedByPetName[*] = 0
+                   // no tickets used => no more available fragements for pets
+                   const petNamesUnavailable = _.keys(dayPlanning.nbFragsUsedByPetName);
+                   //alert("Impossible planification: the following ");
+                   // To avoid an infinite loop
+                   nextPetNotDoneIndex = -1;
+           } else {
+               // skip pets done
+               nextPetNotDoneIndex = this.getNextPetTodoIndex(nextPetNotDoneIndex, remainingFragsByPetName);
+               this.planning.push(dayPlanning);
+           }
        }
        // all pet fragments have been planned
     },
