@@ -6,16 +6,6 @@ Vue.directive('sortable', {
 });
 
 const maxFrags = 330;
-// Migrate data from version 2.1.1 to 2.1.1-K:
-// _.each(data.petList, pet => delete pet.daysRemaining);
-// data.version = '2.1.1-K';
-// data.petUpgrades= [
-//              { value: 0, desc: 'zero', stars: 0},
-//              { value: 10, desc: 'one', stars: 1},
-//              { value: 30, desc: 'two', stars: 2},
-//              { value: 80, desc: 'three', stars: 3},
-//              { value: 180, desc: 'four', stars: 4},
-//              { value: maxFrags, desc: 'five', stars: 5}];
 const originalData = {
   version: '2.1.1-K',
   petList: [
@@ -98,6 +88,26 @@ if (savedData) {
   if (savedData.version === originalData.version) {
     data = _.cloneDeep(savedData);
   } else {
+      switch (savedData.version) {
+          case '2.1.1-disabled':
+              data = _.cloneDeep(savedData);
+              _.each(data.petList, pet => delete pet.daysRemaining);
+              data.petUpgrades= [
+                           { value: 0, desc: 'zero', stars: 0},
+                           { value: 10, desc: 'one', stars: 1},
+                           { value: 30, desc: 'two', stars: 2},
+                           { value: 80, desc: 'three', stars: 3},
+                           { value: 180, desc: 'four', stars: 4},
+                           { value: maxFrags, desc: 'five', stars: 5}];
+              data.version = '2.1.1-K';
+              break;
+          default:
+              if (confirm("Unable to handle automatic migration of data from version " + savedData.version + " to version " + originalData.version + ". Do you want to reset the local storage data ?")) {
+                  data = _.cloneDeep(originalData);
+              } else {
+                  throw "Incompatible data state."
+              }
+      }
     // Do something if data versions are different
   }
 } else {
