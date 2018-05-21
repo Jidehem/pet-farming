@@ -258,10 +258,10 @@ const vm = new Vue({
     },
 
                    getStartDay(petName) {
-                   return _.findIndex(this.planning, dayPlanning => _.has(dayPlanning.nbFragsUsedByPetName, petName));
+                   return _.findIndex(this.planning.days, dayPlanning => _.has(dayPlanning.nbFragsUsedByPetName, petName));
                    },
                    getLastDay(petName) {
-                   return _.findLastIndex(this.planning, dayPlanning => _.has(dayPlanning.nbFragsUsedByPetName, petName));
+                   return _.findLastIndex(this.planning.days, dayPlanning => _.has(dayPlanning.nbFragsUsedByPetName, petName));
                    },
                    getNbRemainingDays(petName) {
                    return this.getLastDay(petName)-this.getStartDay(petName)+1;
@@ -281,7 +281,11 @@ const vm = new Vue({
                                                     {});
        
        // array of (nbFragsUsed, map of nbFrags per pet name)
-       this.planning = [];
+                   this.planning = {
+                   days: [],
+                   status: 'ok',
+                   petNamesWithNoAvailableFrags: []
+                   };
        let nextPetNotDoneIndex = 0;
        
        const nbDailyTickets = this.entries + this.refills * 5;
@@ -294,6 +298,7 @@ const vm = new Vue({
              nbFragsUsed: 0,
              nbFragsUsedByPetName: {}
            };
+           const petNamesWithNoAvailableFrags = [];
            while (nbRemainingTickets > 0) {
                nextPetTodoIndex = this.getNextPetTodoIndex(nextPetTodoIndex, remainingFragsByPetName);
                if (nextPetTodoIndex === -1) {
@@ -303,12 +308,16 @@ const vm = new Vue({
                const remainingFrags = remainingFragsByPetName[pet.name];
                const availableFrags = availableFragsByPetName[pet.name];
                const farmableFrags = Math.min(remainingFrags, availableFrags, nbRemainingTickets);
-               nbRemainingTickets -= farmableFrags;
-               remainingFragsByPetName[pet.name] -= farmableFrags;
-               dayPlanning.nbFragsUsed += farmableFrags;
-               dayPlanning.nbFragsUsedByPetName[pet.name] = _.defaultTo(dayPlanning.nbFragsUsedByPetName[pet.name], 0) + farmableFrags;
-               if (remainingFrags === farmableFrags && nextPetTodoIndex === nextPetNotDoneIndex) {
-                 nextPetNotDoneIndex++;
+               if (farmableFrags === 0) {
+                   petNamesWithNoAvailableFrags.push(pet.name);
+               } else {
+                   nbRemainingTickets -= farmableFrags;
+                   remainingFragsByPetName[pet.name] -= farmableFrags;
+                   dayPlanning.nbFragsUsed += farmableFrags;
+                   dayPlanning.nbFragsUsedByPetName[pet.name] = _.defaultTo(dayPlanning.nbFragsUsedByPetName[pet.name], 0) + farmableFrags;
+                   if (remainingFrags === farmableFrags && nextPetTodoIndex === nextPetNotDoneIndex) {
+                     nextPetNotDoneIndex++;
+                   }
                }
                nextPetTodoIndex++;
            }
@@ -319,14 +328,16 @@ const vm = new Vue({
                    // assert farmableFrags = 0
                    // assert dayPlanning.nbFragsUsedByPetName[*] = 0
                    // no tickets used => no more available fragements for pets
-                   const petNamesUnavailable = _.keys(dayPlanning.nbFragsUsedByPetName);
+                   this.planning.petNamesWithNoAvailableFrags = petNamesWithNoAvailableFrags;
+                   this.planning.status = 'pets with no available fragments';
+                   
                    //alert("Impossible planification: the following ");
                    // To avoid an infinite loop
                    nextPetNotDoneIndex = -1;
            } else {
                // skip pets done
                nextPetNotDoneIndex = this.getNextPetTodoIndex(nextPetNotDoneIndex, remainingFragsByPetName);
-               this.planning.push(dayPlanning);
+               this.planning.days.push(dayPlanning);
            }
        }
        // all pet fragments have been planned

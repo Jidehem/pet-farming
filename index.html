@@ -55,12 +55,14 @@
             <div class="planning">
                 <h2>Complete planning</h2>
                 <p id="planning">
-                    <template v-for="(dayPlanning, day) in planning">
+                    <template v-for="(dayPlanning, day) in planning.days">
                         <span>Day {{ day + 1 }}: {{ dayPlanning.nbFragsUsed }} fragments <template v-for="(nbFragsUsed, petName) in dayPlanning.nbFragsUsedByPetName"><a :href="`https://www.endlessfrontierdata.com/pets/${getPet(petName).img}`"><img class="icon" :src="`files/img/${getPet(petName).img}.png`" :alt="petName" :title="petName"></a>x{{ nbFragsUsed }} </template></span><br/>
                     </template>
                 </p>
-                <p id="planning-summary">Duration: {{ planning.length }} days
-                <template v-if="planning.length > 2 && planning[0].nbFragsUsed !== planning[planning.length - 2].nbFragsUsed"><br/><span class="warn">Planning is likely sub-optimal. You should re-order the pets in the tier list or increase your knight level to farm more fragments of the last pets.</span></template><template v-else-if="isWithAllStagesAvailable()"><br/><span class="warn">Planning doesn't include all the required pets since they are not avalaible yet. Increase your knight level to be able to farm those pets.</span></template>
+                <p id="planning-summary">
+                <template v-if="planning.status === 'ok'">Duration: {{ planning.days.length }} days</template>
+                <template v-if="planning.days.length > 2 && planning.days[0].nbFragsUsed !== planning.days[planning.days.length - 2].nbFragsUsed"><br/><span class="warn">Planning is likely sub-optimal. You should re-order the pets in the tier list or increase your knight level to farm more fragments of the last pets.</span></template><template v-else-if="isWithAllStagesAvailable()"><br/><span class="warn">Planning doesn't include all the required pets since they have no avalaible fragments yet. <br/>Increase your knight level to be able to farm those pets.
+                    <br/>Pets with no available fragments: {{ _.join(planning.petNamesWithNoAvailableFrags) }}</span></template>
                 </p>
             </div>
             <div class="splitter"></div>
