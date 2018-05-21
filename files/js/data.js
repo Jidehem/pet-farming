@@ -5,8 +5,19 @@ Vue.directive('sortable', {
   },
 });
 
+const maxFrags = 330;
+// Migrate data from version 2.1.1 to 2.1.1-K:
+// _.each(data.petList, pet => delete pet.daysRemaining);
+// data.version = '2.1.1-K';
+// data.petUpgrades= [
+//              { value: 0, desc: 'zero', stars: 0},
+//              { value: 10, desc: 'one', stars: 1},
+//              { value: 30, desc: 'two', stars: 2},
+//              { value: 80, desc: 'three', stars: 3},
+//              { value: 180, desc: 'four', stars: 4},
+//              { value: maxFrags, desc: 'five', stars: 5}];
 const originalData = {
-  version: '2.1.1',
+  version: '2.1.1-K',
   petList: [
     { name: 'Hippong', fragments: 0, img: 94, farm: true, index: 40, defaultTier: 1 },
     { name: 'Tinkey', fragments: 10, img: 6, farm: true, index: 13, defaultTier: 2 },
@@ -71,26 +82,14 @@ const originalData = {
   gemCostArray: [0, 100, 300, 700, 1500, 2700, 4300],
   farmList: [],
   petUpgrades: [
-              { value: 0, desc: 'zero'},
-              { value: 10, desc: 'one'},
-              { value: 30, desc: 'two'},
-              { value: 80, desc: 'three'},
-              { value: 180, desc: 'four'},
-              { value: 330, desc: 'five'},
+                { value: 0, desc: 'zero', stars: 0},
+              { value: 10, desc: 'one', stars: 1},
+              { value: 30, desc: 'two', stars: 2},
+              { value: 80, desc: 'three', stars: 3},
+              { value: 180, desc: 'four', stars: 4},
+              { value: maxFrags, desc: 'five', stars: 5},
     ],
 };
-//originalData
-
-function getPetInputClassPrefix(petFrags) {
-    const pu = originalData.petUpgrades;
-    let classPrefix = ''
-    for(let i = 0, last = 0; i < pu.length; ++i) {
-        classPrefix = pu[i].desc;
-        if (pu[i].value >= petFrags)
-            return classPrefix;
-    }
-    return classPrefix;
-}
 
 // Load saved data if it exists
 const savedData = JSON.parse(localStorage.getItem('data')) || false;
@@ -167,94 +166,176 @@ const vm = new Vue({
   },
   computed: {
     orderedPetList() {
-      return _.orderBy(data.petList, 'index');
+      return _.orderBy(this.petList, 'index');
     },
-    petUpgradesInverted(){
-      return _.reverse(data.petUpgrades);
+    petUpgradesInvertedNoZero(){
+      return _.reverse(_.drop(this.petUpgrades));
+   },
+   petByName(){
+     return _.keyBy(this.petList, v => v.name);
    }
   },
   methods: {
     getPet(petName) {
-      let pet = data.petList[0];
-      for (let i = 1; i < data.petList.length; i++) {
-        if (data.petList[i].name === petName) {
-          pet = data.petList[i];
-        }
-      }
-      return pet;
+      return this.petByName[petName];
+    },
+    isUpgradeDone(pet, petUpgrade) {
+      return pet.fragments >= petUpgrade.value &&
+        (petUpgrade.stars +1 >= this.petUpgrades.length || pet.fragments < this.petUpgrades[petUpgrade.stars + 1].value);
     },
     reorderPetList({ oldIndex, newIndex }) {
-      const movedItem = data.petList.splice(oldIndex, 1)[0];
-      data.petList.splice(newIndex, 0, movedItem);
+      const movedItem = this.petList.splice(oldIndex, 1)[0];
+      this.petList.splice(newIndex, 0, movedItem);
     },
     resetTierList() {
-      data.petList = _.orderBy(data.petList, 'defaultTier');
+      this.petList = _.orderBy(this.petList, 'defaultTier');
     },
     addFarmedFrags() {
-      for (const pet of data.petList) {
+      for (const pet of this.petList) {
         pet.fragments += pet.farmableFrags;
       }
       this.updateFarmList();
     },
     updateFarmList() {
       // Reset farmableFrags to zero on all pets
-      _.forEach(data.petList, (obj) => {
-        _.set(obj, 'farmableFrags', 0);
-      });
+      _.forEach(this.petList, obj => obj.farmableFrags = 0);
+      
 
       // Save data
-      localStorage.setItem('data', JSON.stringify(data));
+      localStorage.setItem('data', JSON.stringify(this.$data));
 
-      data.farmList = _.filter(data.petList, obj => obj.fragments < 330 && obj.farm);
-      let tickets = data.entries + data.refills * 5;
-
-      for (const pet of data.farmList) {
-        const availableFrags = _.filter(data.SHList, obj => obj[0].KLReq <= data.KL && (obj[0].name === pet.name || obj[1].name === pet.name));
-        pet.farmableFrags = 0;
+      this.farmList = _.filter(this.petList, pet => pet.fragments < maxFrags && pet.farm);
+      let tickets = this.entries + this.refills * 5;
+   
+      const availableFragsByPetName = {};
+      for (const pet of this.farmList) {
+        // poor algorithm complexity O(n^2), but performance is ok in practice
+        const availableFrags = _.filter(this.SHList, obj => obj[0].KLReq <= this.KL && (obj[0].name === pet.name || obj[1].name === pet.name));
+        let farmableFrags = 0;
         if (availableFrags !== []) {
           let firstStageFrags = 3;
-          if (pet.index >= data.petList.length - 4) {
+          if (pet.index >= this.petList.length - 4) {
             // Newest pets only have 1 frag on first stage
             firstStageFrags = 1;
           }
+          // warning: algo is sensitive to first frags pbeing present in left or right stage
           for (let i = 0; i < availableFrags.length; i++) {
             if (availableFrags[i][0].name === pet.name) {
-              pet.farmableFrags += firstStageFrags;
-              // Only the first first stage has 3 frags
+              farmableFrags += firstStageFrags;
+              // Only the first first stage can have 3 frags
               if (firstStageFrags === 3) {
                 firstStageFrags = 1;
               }
             }
             if (availableFrags[i][1].name === pet.name) {
-              pet.farmableFrags += 3;
+              farmableFrags += 3;
             }
           }
         }
-        // If we're farming more frags than needed to finish the pet, remove the excess, or more than we have remaining tickets, remove excess
-        pet.farmableFrags = pet.farmableFrags > 330 - pet.fragments ? 330 - pet.fragments : pet.farmableFrags;
-        pet.farmableFrags = pet.farmableFrags > tickets ? tickets : pet.farmableFrags;
-        pet.daysRemaining = Math.ceil((330 - pet.fragments) / pet.farmableFrags);
-        tickets -= pet.farmableFrags;
-        if (tickets <= 0) {
-          break;
+        availableFragsByPetName[pet.name] = farmableFrags;
+              
+        // current state
+        if (tickets > 0) {
+            // If we're farming more frags than needed to finish the pet, remove the excess, or more than we have remaining tickets, remove excess
+            pet.farmableFrags = Math.min(maxFrags - pet.fragments, farmableFrags, tickets);
+            tickets -= farmableFrags;
         }
       }
-      data.farmList = _.filter(data.farmList, obj => obj.farmableFrags > 0);
+      this.farmList = _.filter(this.farmList, obj => obj.farmableFrags > 0);
+                   
+        // update planning
+        this.updatePlanning(availableFragsByPetName);
     },
-                   // we can't put the state in "data" because we don't wan't to duplicate it in local storage => work directly with html, don't use Vue
+
+                   getStartDay(petName) {
+                   return _.findIndex(this.planning, dayPlanning => _.has(dayPlanning.nbFragsUsedByPetName, petName));
+                   },
+                   getLastDay(petName) {
+                   return _.findLastIndex(this.planning, dayPlanning => _.has(dayPlanning.nbFragsUsedByPetName, petName));
+                   },
+                   getNbRemainingDays(petName) {
+                   return this.getLastDay(petName)-this.getStartDay(petName)+1;
+                   },
+   isWithAllStagesAvailable() {
+     return this.KL >= this.SHList[this.SHList.length-1][0].KLReq;
+   },
+    getNextPetTodoIndex(startIdx, remainingFragsByPetName) {
+      return _.findIndex(this.petList, pet => pet.fragments < maxFrags && pet.farm && remainingFragsByPetName[pet.name] > 0, startIdx);
+    },
+    updatePlanning(availableFragsByPetName) {
+       const remainingFragsByPetName = _.transform(_.filter(this.petList, pet => pet.fragments < maxFrags && pet.farm),
+                                                    (res, pet) => {
+                                                        res[pet.name] = maxFrags - pet.fragments;
+                                                    return true;
+                                                    },
+                                                    {});
+       
+       // array of (nbFragsUsed, map of nbFrags per pet name)
+       this.planning = [];
+       let dayIndex = 0;
+       let nbPetsDone = 0;
+       let nextPetNotDoneIndex = 0;
+       
+       const nbDailyTickets = this.entries + this.refills * 5;
+       
+       // for each day
+       while (nextPetNotDoneIndex !== -1) {
+           let nbRemainingTickets = nbDailyTickets;
+           let nextPetTodoIndex = nextPetNotDoneIndex;
+           const dayPlanning = {
+             nbFragsUsed: 0,
+             nbFragsUsedByPetName: {}
+           };
+           while (nbRemainingTickets > 0) {
+               nextPetTodoIndex = this.getNextPetTodoIndex(nextPetTodoIndex, remainingFragsByPetName);
+               if (nextPetTodoIndex === -1) {
+                   break;
+               }
+               const pet = this.petList[nextPetTodoIndex];
+               const remainingFrags = remainingFragsByPetName[pet.name];
+               const availableFrags = availableFragsByPetName[pet.name];
+               const farmableFrags = Math.min(remainingFrags, availableFrags, nbRemainingTickets);
+               nbRemainingTickets -= farmableFrags;
+               remainingFragsByPetName[pet.name] -= farmableFrags;
+               dayPlanning.nbFragsUsed += farmableFrags;
+               dayPlanning.nbFragsUsedByPetName[pet.name] = _.defaultTo(dayPlanning.nbFragsUsedByPetName[pet.name], 0) + farmableFrags;
+               if (remainingFrags === farmableFrags && nextPetTodoIndex === nextPetNotDoneIndex) {
+                 nextPetNotDoneIndex++;
+               }
+               nextPetTodoIndex++;
+           }
+           // all daily tickets have been used
+           // skip pets done
+           nextPetNotDoneIndex = this.getNextPetTodoIndex(nextPetNotDoneIndex, remainingFragsByPetName);
+           this.planning.push(dayPlanning);
+       }
+       // all pet fragments have been planned
+    },
+    getPetInputClassPrefix(petFrags) {
+        const pu = this.petUpgrades;
+        let classPrefix = ''
+        for(let i = 0, last = 0; i < pu.length; ++i) {
+            classPrefix = pu[i].desc;
+            if (pu[i].value >= petFrags)
+            return classPrefix;
+        }
+        return classPrefix;
+    },
+    
+    // we can't put the state in "data" because we don't wan't to duplicate it in local storage => work directly with html, don't use Vue
     restoreState() {
-                   const rawData = document.getElementById('rawState').value;
-                   localStorage.setItem('data', rawData);
-                   _.assign(data, JSON.parse(rawData));
-                   },
+        const rawData = document.getElementById('rawState').value;
+        localStorage.setItem('data', rawData);
+        _.assign(this.$data, JSON.parse(rawData));
+    },
+
+    dumpState() {
+        const state = JSON.stringify(this.$data);
+        document.getElementById('rawState').value = state;
+    },
                    
-        dumpState() {
-                   const state = JSON.stringify(data);
-                   document.getElementById('rawState').value = state;
-                   },
-                   
-                   clearState() {
-                   document.getElementById('rawState').value = '';
-                   }
+    clearState() {
+        document.getElementById('rawState').value = '';
+    }
   },
 });

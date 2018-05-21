@@ -33,7 +33,7 @@
                 <div id="userInputs"><label for="inputKL">KL</label><input id="inputKL" type="number" v-model.number="KL" min="0"/><br /><label for="inputEntries">Tickets</label><input id="inputEntries" type="number" v-model.number="entries" min="10" max="30" /><br /><label for="inputRefills">Refills</label><input id="inputRefills" type="number" v-model.number="refills" min="0" max="6" /><br /><span id="gemCost"><img src="files/img/gem.png" style="width:12px;"> {{ gemCostArray[refills] }}</span><br /></div>
                 <div id="farmList">
                     <h4>Fragments</h4><span>Stages to farm are highlighted above</span>
-                    <div class="farmRow" v-for="pet in farmList" :key="pet.name"><img :src="`files/img/${pet.img}.png`"> <span id="farmCount">x{{ pet.farmableFrags}}</span> <span id="daysRemaining">({{ pet.daysRemaining }} days)</span>
+                    <div class="farmRow" v-for="pet in farmList" :key="pet.name"><img :src="`files/img/${pet.img}.png`"> <span id="farmCount">x{{ pet.farmableFrags}}</span> <span id="daysRemaining">({{ getNbRemainingDays(pet.name) }} days)</span>
                         </div><button @click="addFarmedFrags()">Add</button>
                 </div>
             </div>
@@ -42,28 +42,34 @@
                     getPetInputClassPrefix(pet.fragments) + 'Star'"><img :src="`files/img/${pet.img}.png`"></a>
                 <div><span class="petName">{{ pet.name }}</span><br>
                     <fieldset class="starcounter">
-                        <!--<input v-for="idx in petUpgradesInverted">a{{ idx }}</input>-->
-                        <input type="radio" :id="`${pet.name.replace(' ','')}-5star`" :name="`${pet.name.replace(' ','')}`" value="330" :checked="pet.fragments >= 330" @change="pet.fragments=330;updateFarmList()"/><label :for="`${pet.name.replace(' ','')}-5star`"><img src="files/img/star.png"></label>
-                        <input type="radio" :id="`${pet.name.replace(' ','')}-4star`" :name="`${pet.name.replace(' ','')}`" value="180" :checked="pet.fragments >= 180 && pet.fragments < 330" @change="pet.fragments=180;updateFarmList()"/><label :for="`${pet.name.replace(' ','')}-4star`"><img src="files/img/star.png"></label>
-                        <input type="radio" :id="`${pet.name.replace(' ','')}-3star`" :name="`${pet.name.replace(' ','')}`" value="80" :checked="pet.fragments >= 80 && pet.fragments < 180" @change="pet.fragments=80;updateFarmList()"/><label :for="`${pet.name.replace(' ','')}-3star`"><img src="files/img/star.png"></label>
-                        <input type="radio" :id="`${pet.name.replace(' ','')}-2star`" :name="`${pet.name.replace(' ','')}`" value="30" :checked="pet.fragments >= 30 && pet.fragments < 80" @change="pet.fragments=30;updateFarmList()"/><label :for="`${pet.name.replace(' ','')}-2star`"><img src="files/img/star.png"></label>
-                        <input type="radio" :id="`${pet.name.replace(' ','')}-1star`" :name="`${pet.name.replace(' ','')}`" value="10" :checked="pet.fragments >= 10 && pet.fragments < 30" @change="pet.fragments=10;updateFarmList()"/><label :for="`${pet.name.replace(' ','')}-1star`"><img src="files/img/star.png"></label>
+                        <template v-for="(pu, idx) in petUpgradesInvertedNoZero">
+                            <input type="radio" :id="`${pet.name.replace(' ','')}-${pu.stars}star`" :name="`${pet.name.replace(' ','')}`" :value="`${pu.value}`" :checked="isUpgradeDone(pet, pu)" @change="pet.fragments=`${pu.value}`;updateFarmList()"/>
+                           <label :for="`${pet.name.replace(' ','')}-${pu.stars}star`">
+                             <img src="files/img/star.png">
+                           </label>
+                        </template>
                     </fieldset><input v-model.number="pet.fragments" @change="updateFarmList()" type="number" step="1" min="0" max="999" style="clear:both;"><br /></div>
                 </div>
             </div>
             <div class="splitter"></div>
             <div class="planning">
                 <h2>Complete planning</h2>
-                <p id="planning"></p>
-                <p id="planning-summary"></p>
+                <p id="planning">
+                    <template v-for="(dayPlanning, day) in planning">
+                        <span>Day {{ day + 1 }}: {{ dayPlanning.nbFragsUsed }} fragments <template v-for="(nbFragsUsed, petName) in dayPlanning.nbFragsUsedByPetName"><a :href="`https://www.endlessfrontierdata.com/pets/${getPet(petName).img}`"><img class="icon" :src="`files/img/${getPet(petName).img}.png`" :alt="petName" :title="petName"></a>x{{ nbFragsUsed }} </template></span><br/>
+                    </template>
+                </p>
+                <p id="planning-summary">Duration: {{ planning.length }} days
+                <template v-if="planning.length > 2 && planning[0].nbFragsUsed !== planning[planning.length - 2].nbFragsUsed"><br/><span class="warn">Planning is likely sub-optimal. You should re-order the pets in the tier list or increase your knight level to farm more fragments of the last pets.</span></template><template v-else-if="isWithAllStagesAvailable()"><br/><span class="warn">Planning doesn't include all the required pets since they are not avalaible yet. Increase your knight level to be able to farm those pets.</span></template>
+                </p>
             </div>
             <div class="splitter"></div>
             <div class="stateManagement">
                 <h2>Use this section to save/restore the state between devices</h2>
                 <textarea id="rawState"></textarea><br/>
-                <button id="copyState" v-on:click="dumpState()">Get state</button>
-                <button id="restoreState" v-on:click="restoreState()">Restore state</button>
-                <button id="clearState" v-on:click="clearState()">Clear</button>
+                <button id="copyState" @click="dumpState()">Get state</button>
+                <button id="restoreState" @click="restoreState()">Restore state</button>
+                <button id="clearState" @click="clearState()">Clear</button>
             </div>
         </div>
     </body>

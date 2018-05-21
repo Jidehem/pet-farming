@@ -400,11 +400,22 @@ h4 {
 	max-height: 300px;
 	overflow: auto;
 	padding: 2px;
+    background-color: #333;
+    color: #ccc;
+}
+#planning a > img {
+    width: 33px;
+    height: 33px;
+    vertical-align: middle;
+    opacity: 1;
+    /*background-color: #222;*/
 }
 #planning-summary {
 	margin-top: 2px;
 	padding: 2px;
 	border-top: 1px solid #555;
+    background-color: #333;
+    color: #ccc;
 }
 .stateManagement button {
 	margin: 3px;
@@ -414,5 +425,13 @@ h4 {
 	width: auto;
 	min-width: 600px;
 	min-height: 100px;
+    background-color: #333;
+    color: #ccc;
+}
+.warn {
+    color: orange;
+    font-style: italic;
+    font-size: larger;
+    line-height: 2em;
 }
 
