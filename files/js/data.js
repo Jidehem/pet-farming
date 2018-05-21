@@ -282,8 +282,6 @@ const vm = new Vue({
        
        // array of (nbFragsUsed, map of nbFrags per pet name)
        this.planning = [];
-       let dayIndex = 0;
-       let nbPetsDone = 0;
        let nextPetNotDoneIndex = 0;
        
        const nbDailyTickets = this.entries + this.refills * 5;
