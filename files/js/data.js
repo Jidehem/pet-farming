@@ -89,10 +89,10 @@ if (savedData) {
     data = _.cloneDeep(savedData);
   } else {
       switch (savedData.version) {
-          case '2.1.1-disabled':
+          case '2.1.1':
               data = _.cloneDeep(savedData);
               _.each(data.petList, pet => delete pet.daysRemaining);
-              data.petUpgrades= [
+              data.petUpgrades = [
                            { value: 0, desc: 'zero', stars: 0},
                            { value: 10, desc: 'one', stars: 1},
                            { value: 30, desc: 'two', stars: 2},
