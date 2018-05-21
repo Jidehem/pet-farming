@@ -61,8 +61,8 @@
                 </p>
                 <p id="planning-summary">
                 <template v-if="planning.status === 'ok'">Duration: {{ planning.days.length }} days</template>
-                <template v-if="planning.days.length > 2 && planning.days[0].nbFragsUsed !== planning.days[planning.days.length - 2].nbFragsUsed"><br/><span class="warn">Planning is likely sub-optimal. You should re-order the pets in the tier list or increase your knight level to farm more fragments of the last pets.</span></template><template v-if="isWithAllStagesAvailable()"><br/><span class="warn">Planning doesn't include all the required pets since they have no available fragments yet. <br/>Increase your knight level to be able to farm them.
-                    <br/>Pets with no available fragments: {{ _.join(planning.petNamesWithNoAvailableFrags) }}</span></template>
+                <template v-if="planning.days.length > 2 && planning.days[0].nbFragsUsed !== planning.days[planning.days.length - 2].nbFragsUsed"><br/><span class="warn">Planning is likely sub-optimal. You should re-order the pets in the tier list or increase your knight level to farm more fragments of the last pets.</span></template><template v-else-if="!isWithAllStagesAvailable()"><br/><span class="warn">Some stages are not unlocked yet.<br/>Increase your knight level to open new stages and optimize planning.</span></template><template v-if="!isWithAllStagesAvailable() && planning.petNamesWithNoAvailableFrags.length > 0"><br/><span class="warn">Planning doesn't include all the required pets since they have no available fragments yet. <br/>Increase your knight level to be able to farm them.
+                        <br/>Pets with no available fragments: {{ _.join(planning.petNamesWithNoAvailableFrags) }}</span></template>
                 </p>
             </div>
             <div class="splitter"></div>
