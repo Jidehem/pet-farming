@@ -281,11 +281,11 @@ const vm = new Vue({
                                                     {});
        
        // array of (nbFragsUsed, map of nbFrags per pet name)
-                   this.planning = {
-                   days: [],
-                   status: 'ok',
-                   petNamesWithNoAvailableFrags: []
-                   };
+       this.planning = {
+           days: [],
+           status: 'ok',
+           petNamesWithNoAvailableFrags: []
+       };
        let nextPetNotDoneIndex = 0;
        
        const nbDailyTickets = this.entries + this.refills * 5;
