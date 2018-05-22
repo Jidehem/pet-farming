@@ -92,14 +92,8 @@ if (savedData) {
           case '2.1.1':
               data = _.cloneDeep(savedData);
               _.each(data.petList, pet => delete pet.daysRemaining);
-              data.petUpgrades = [
-                           { value: 0, desc: 'zero', stars: 0},
-                           { value: 10, desc: 'one', stars: 1},
-                           { value: 30, desc: 'two', stars: 2},
-                           { value: 80, desc: 'three', stars: 3},
-                           { value: 180, desc: 'four', stars: 4},
-                           { value: maxFrags, desc: 'five', stars: 5}];
-              data.version = '2.1.1-K';
+              data.petUpgrades = _.cloneDeep(originalData.petUpgrades);
+              data.version = originalData.version;
               break;
           default:
               if (confirm("Unable to handle automatic migration of data from version " + savedData.version + " to version " + originalData.version + ". Do you want to reset the local storage data ?")) {
@@ -344,13 +338,11 @@ const vm = new Vue({
     },
     getPetInputClassPrefix(petFrags) {
         const pu = this.petUpgrades;
-        let classPrefix = ''
-        for(let i = 0, last = 0; i < pu.length; ++i) {
-            classPrefix = pu[i].desc;
-            if (pu[i].value >= petFrags)
-            return classPrefix;
+        let lastIndex = 0;
+        for(let i = 1; i < pu.length && petFrags >= pu[i].value; ++i) {
+            lastIndex = i;
         }
-        return classPrefix;
+        return pu[lastIndex].desc;
     },
     
     // we can't put the state in "data" because we don't wan't to duplicate it in local storage => work directly with html, don't use Vue
