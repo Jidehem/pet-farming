@@ -150,6 +150,7 @@ const vm = new Vue({
   el: '#app',
   data,
   created() {
+    this.updateNbAvailableFragsPerStage();
     this.updateFarmList();
   },
   watch: {
@@ -180,6 +181,34 @@ const vm = new Vue({
    }
   },
   methods: {
+    updateNbAvailableFragsPerStage() {
+        // update nb available frags per SH stage
+        for (const pet of this.petList) {
+            // poor algorithm complexity O(n^2), but performance is ok in practice
+            const availableFrags = _.filter(this.SHList, obj => (obj[0].name === pet.name || obj[1].name === pet.name));
+            let farmableFrags = 0;
+            if (availableFrags !== []) {
+                let firstStageFrags = 3;
+                if (pet.index >= this.petList.length - 4) {
+                    // Newest pets only have 1 frag on first stage
+                    firstStageFrags = 1;
+                }
+                // warning: algo is sensitive to first frags being present in left or right stage
+                for (let i = 0; i < availableFrags.length; i++) {
+                    if (availableFrags[i][0].name === pet.name) {
+                        availableFrags[i][0].farmableFrags = firstStageFrags;
+                        // Only the first first stage can have 3 frags
+                        if (firstStageFrags === 3) {
+                            firstStageFrags = 1;
+                        }
+                    }
+                    if (availableFrags[i][1].name === pet.name) {
+                        availableFrags[i][1].farmableFrags = 3;
+                    }
+                }
+            }
+        }
+    },
     getPet(petName) {
       return this.petByName[petName];
     },
@@ -217,22 +246,13 @@ const vm = new Vue({
         const availableFrags = _.filter(this.SHList, obj => obj[0].KLReq <= this.KL && (obj[0].name === pet.name || obj[1].name === pet.name));
         let farmableFrags = 0;
         if (availableFrags !== []) {
-          let firstStageFrags = 3;
-          if (pet.index >= this.petList.length - 4) {
-            // Newest pets only have 1 frag on first stage
-            firstStageFrags = 1;
-          }
-          // warning: algo is sensitive to first frags pbeing present in left or right stage
+          // warning: algo is sensitive to first frags being present in left or right stage
           for (let i = 0; i < availableFrags.length; i++) {
-            if (availableFrags[i][0].name === pet.name) {
-              farmableFrags += firstStageFrags;
-              // Only the first first stage can have 3 frags
-              if (firstStageFrags === 3) {
-                firstStageFrags = 1;
+            for (let column = 0; column < 2; column++) {
+              const stage = availableFrags[i][column];
+              if (stage.name === pet.name) {
+                farmableFrags += stage.farmableFrags;
               }
-            }
-            if (availableFrags[i][1].name === pet.name) {
-              farmableFrags += 3;
             }
           }
         }
@@ -350,6 +370,7 @@ const vm = new Vue({
         const rawData = document.getElementById('rawState').value;
         localStorage.setItem('data', rawData);
         _.assign(this.$data, JSON.parse(rawData));
+        this.updateNbAvailableFragsPerStage();
     },
 
     dumpState() {
